@@ -1,17 +1,18 @@
 // /pages/api/generate.js
 export default async function handler(req, res) {
+  // POSTメソッドのみを許可
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { prompt } = req.body; // prompt は元のテキスト全体
+    const { prompt } = req.body; // prompt はフロントエンドから送られた元のテキスト全体
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
-    // ★ 既存のフロントエンドが期待するJSON形式を生成するためのプロンプト
+    // 既存のフロントエンドが期待するJSON形式を生成するためのシステムプロンプト
     const systemPrompt = `あなたは優秀な編集者であり、与えられたテキストを深く理解するための内省的な質問を生成する専門家です。
 以下の手順に従って、入力されたテキストに対して質問を生成し、JSON配列形式で出力してください。
 
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        // 構造化出力を確実にするため gpt-4-turbo を推奨
+        // JSON構造化出力を確実にするため gpt-4-turbo を使用
         model: "gpt-4-turbo", 
         messages: [
             { role: "system", content: systemPrompt },
@@ -48,29 +49,58 @@ export default async function handler(req, res) {
       }),
     });
 
+    // APIからの応答をJSONとして取得
     const data = await response.json();
+    
+    // API自体がエラーを返した場合（例：キー切れ、トークン超過）
+    if (!response.ok) {
+        console.error("OpenAI API Error:", data);
+        return res.status(response.status).json({ 
+            error: data.error?.message || "OpenAI APIとの通信に失敗しました。" 
+        });
+    }
+
     let jsonString = data.choices?.[0]?.message?.content || "[]";
+    
+    // ★★★ ロバスト性を高めるための前処理：Markdownバッククォートを削除 ★★★
+    jsonString = jsonString.trim();
+    
+    // '```json' または '```' で始まる場合、それを削除
+    if (jsonString.startsWith('```json')) {
+      jsonString = jsonString.substring(7).trim();
+    } else if (jsonString.startsWith('```')) {
+       jsonString = jsonString.substring(3).trim();
+    }
+    
+    // 最後の '```' を削除
+    if (jsonString.endsWith('```')) {
+      jsonString = jsonString.substring(0, jsonString.length - 3).trim();
+    }
     
     let aiQuestionsArray;
     try {
-        // JSON文字列をパースし、配列部分を取得
         const parsed = JSON.parse(jsonString);
-        // JSONオブジェクトの場合、配列が 'questions' や 'list' などのキーに格納されている可能性があるため対応
+        
+        // 応答が配列（期待される形式）か、配列をキーに持つオブジェクトかを確認
         aiQuestionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.list || parsed.items);
+        
     } catch (e) {
-        console.error("AIからの応答形式が不正です:", jsonString);
+        // JSONパースに失敗した場合
+        console.error("Failed to parse JSON response from OpenAI:", jsonString);
         return res.status(500).json({ error: "AIからの応答形式が不正です。" });
     }
     
+    // 最終的に有効な配列が取得できたか確認
     if (!aiQuestionsArray || !Array.isArray(aiQuestionsArray)) {
+        console.error("AI did not return a valid array:", aiQuestionsArray);
         return res.status(500).json({ error: "AIが期待される形式の質問リストを生成できませんでした。" });
     }
 
-    // 成功時: 質問リストの配列をそのまま返す
+    // 成功時: 質問リストの配列をそのままフロントエンドに返す
     res.status(200).json(aiQuestionsArray);
-
   } catch (err) {
-    console.error(err);
+    // 予期せぬエラー（ネットワークエラーなど）
+    console.error("Internal Server Error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 }
