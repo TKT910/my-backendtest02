@@ -1,9 +1,8 @@
-// /pages/index.js (抜粋・実装追加部分)
+// /pages/index.js (修正後)
 
 import Head from 'next/head';
 import { useState, useCallback } from 'react';
 // UIコンポーネントは既存のものを使用
-// import { Header, Main, Footer } from '../components/Layout'; // 例
 
 const HomePage = () => {
   // ユーザーの入力プロンプトを保持
@@ -18,7 +17,7 @@ const HomePage = () => {
   // APIを呼び出す関数
   const generateContent = useCallback(async (e) => {
     e.preventDefault();
-    if (!prompt.trim()) return; // プロンプトが空の場合は実行しない
+    if (!prompt.trim()) return;
 
     setIsLoading(true);
     setError(null);
@@ -40,8 +39,23 @@ const HomePage = () => {
         throw new Error(data.error || 'API call failed');
       }
 
-      // 成功した場合
-      setResultText(data.text);
+      // 🚨 修正ポイント: dataがJSON配列（質問リスト）であることを想定して処理する
+      if (Array.isArray(data)) {
+        if (data.length === 0) {
+            setResultText('AIは質問を生成しましたが、リストは空でした。');
+        } else {
+            // 質問リストを整形して表示用テキストにする
+            const formattedQuestions = data.map((item, index) => 
+                `--- 質問 ${index + 1} ---\n質問: ${item.text}\n関連段落:\n${item.targetText}`
+            ).join('\n\n');
+            
+            setResultText(formattedQuestions);
+        }
+      } else {
+          // 期待しないデータ形式の場合
+          throw new Error('APIから返されたデータ形式が不正です。');
+      }
+      
     } catch (err) {
       console.error('Generation Error:', err);
       setError(err.message || 'コンテンツの生成中にエラーが発生しました。');
@@ -97,6 +111,7 @@ const HomePage = () => {
         {resultText && (
           <div style={{ marginTop: '30px', border: '1px solid #ccc', padding: '15px' }}>
             <h3>生成結果:</h3>
+            {/* 改行を維持するために <pre> タグや pre-wrap を使用しているため、ここではスタイルを維持 */}
             <p style={{ whiteSpace: 'pre-wrap' }}>{resultText}</p>
           </div>
         )}

@@ -1,5 +1,10 @@
 // /pages/api/generate.js
 export default async function handler(req, res) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+      console.error("API Key is missing in Vercel environment.");
+      return res.status(500).json({ error: "APIキーが設定されていません。" });
+  }
   // POSTメソッドのみを許可
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -37,8 +42,8 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        // JSON構造化出力を確実にするため gpt-4-turbo を使用
-        model: "gpt-3.5-turbo", 
+        // JSON構造化出力を確実にするため gpt-4o を使用
+        model: "gpt-4o", 
         messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: `ターゲットテキスト:\n${prompt}` }
