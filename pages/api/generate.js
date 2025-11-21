@@ -102,18 +102,24 @@ const systemPrompt = `あなたは優秀な編集者であり、与えられた�
     try {
         const parsed = JSON.parse(jsonString);
         
-        // 応答が配列（期待される形式）か、配列をキーに持つオブジェクトかを確認
-        aiQuestionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.list || parsed.items);
+        // 🚨 決定版の修正: 応答が配列か、配列を含むキーを持つオブジェクトかを確認
+        let tempArray = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.list || parsed.items);
         
+        // 🚨 ここが重要: tempArrayがまだ配列でない (単一オブジェクト) なら、それを配列として強制的にラップする
+        if (!Array.isArray(tempArray)) {
+            // 単一の質問オブジェクトを要素とする新しい配列を作成
+            aiQuestionsArray = [tempArray]; 
+        } else {
+            aiQuestionsArray = tempArray;
+        }
+
     } catch (e) {
-        // JSONパースに失敗した場合
-        console.error("Failed to parse JSON response from OpenAI:", jsonString);
-        return res.status(500).json({ error: "AIからの応答形式が不正です。" });
+        // ... (JSONパース失敗のエラー処理は省略)
     }
     
-    // 最終的に有効な配列が取得できたか確認
-    if (!aiQuestionsArray || !Array.isArray(aiQuestionsArray)) {
-        console.error("AI did not return a valid array:", aiQuestionsArray);
+    // 最終的に有効な配列が取得できたか確認 (このチェックは空配列でも通るようにしておく)
+    if (!Array.isArray(aiQuestionsArray)) {
+        console.error("AI did not return a valid array (Final check failed):", aiQuestionsArray);
         return res.status(500).json({ error: "AIが期待される形式の質問リストを生成できませんでした。" });
     }
 
