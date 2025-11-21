@@ -32,11 +32,18 @@ const HomePage = () => {
         body: JSON.stringify({ prompt }),
       });
 
-      const data = await response.json();
+      const data = await response.json(); // ここで data が null になる可能性は低いが、fetchが成功してもボディがない場合は起こり得る
 
       if (!response.ok) {
         // API Route側でエラー (400, 500など) が発生した場合
-        throw new Error(data.error || 'API call failed');
+        // data がオブジェクトでない可能性を考慮して null チェックを追加
+        const errorMessage = (data && data.error) ? data.error : 'API call failed with unknown error.';
+        throw new Error(errorMessage);
+      }
+
+      // data が存在するか、および配列であるかを確認
+      if (!data) {
+          throw new Error('APIからの応答データが空です。'); // Null/Undefinedのデータが返された場合
       }
 
       // 🚨 修正ポイント: dataがJSON配列（質問リスト）であることを想定して処理する
