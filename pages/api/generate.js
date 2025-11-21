@@ -57,16 +57,29 @@ export default async function handler(req, res) {
     // APIからの応答をJSONとして取得
     const data = await response.json();
     
-    // API自体がエラーを返した場合（例：キー切れ、トークン超過）
-    if (!response.ok) {
-        console.error("OpenAI API Error:", data);
-        return res.status(response.status).json({ 
-            error: data.error?.message || "OpenAI APIとの通信に失敗しました。" 
-        });
+    // ... (API自体がエラーを返した場合の処理は省略)
+
+    let jsonString = data.choices?.[0]?.message?.content;
+    
+    // --- ★ デバッグログの追加ポイント ★ ---
+    if (!jsonString) {
+        // 1. contentが空だった場合のデバッグログ
+        const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
+        console.error("DEBUG: Content is EMPTY. Finish reason:", finishReason);
+        
+        // ★ ログ追加のため、エラーメッセージも少し修正（Finish Reasonを出力）
+        if (finishReason === 'content_filter') {
+            return res.status(400).json({ error: "入力内容がOpenAIの安全ポリシーに抵触しました。" });
+        }
+        // max_tokensを4096から2048に戻す（テストを兼ねて）
+        if (finishReason === 'length') {
+            return res.status(500).json({ error: "AIの応答が長すぎるため途中で打ち切られました（max_tokens: 4096）。" });
+        }
+        return res.status(500).json({ error: "AIが応答を生成できませんでした（Finish Reason: " + finishReason + "）。" });
     }
 
-    let jsonString = data.choices?.[0]?.message?.content || "[]";
-    
+    // 2. AIが返した生の文字列をターミナルに出力
+    console.log("DEBUG: Raw JSON String from AI:\n", jsonString);
     // ★★★ ロバスト性を高めるための前処理：Markdownバッククォートを削除 ★★★
     jsonString = jsonString.trim();
     
