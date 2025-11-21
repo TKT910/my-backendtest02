@@ -52,7 +52,7 @@ const systemPrompt = `あなたは優秀な編集者であり、与えられた�
             { role: "user", content: `ターゲットテキスト:\n${prompt}` }
         ],
         // JSON形式を要求
-        response_format: { type: "json_object" }, 
+        response_format: { type: "json" }, 
         max_tokens: 4096,
       }),
     });
@@ -127,7 +127,7 @@ try {
     aiQuestionsArray = tempArray;
 
 } catch (e) {
-    console.error("JSON parse error:", e);
+     console.error("JSON parse error:", e);
     return res.status(500).json({ error: "Invalid JSON returned from AI." });
 }
 
