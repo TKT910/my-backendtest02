@@ -1,0 +1,20 @@
+﻿イベント,出現回数,追加フィールド
+🤖_ai_feedback_received,32,"generated_count, input_text_length, questions_preview, template_types"
+click_history_btn,22,(基本フィールドのみ)
+restore_history_session,15,"preview, session_id"
+click_reflection_history_btn,12,(基本フィールドのみ)
+page_loaded_with_user,10,user_from_url
+text_revised,8,"focused_question_id, original_text, revised_text"
+ai_feedback_generated,6,"generated_count, input_text_length, questions_preview"
+📋_session_history_opened,6,(基本フィールドのみ)
+login_success,5,login_id
+🌐_page_loaded,5,user_from_url
+🔄_session_restored,5,"preview, session_id"
+mode_select_text,4,(基本フィールドのみ)
+click_new_session_btn,2,(基本フィールドのみ)
+click_help_btn,1,(基本フィールドのみ)
+click_help_from_login,1,(基本フィールドのみ)
+toggle_original_view,1,showing_original
+click_cancel_text_input,1,(基本フィールドのみ)
+submit_initial_text,1,length
+📁_file_input_mode_selected,1,(基本フィールドのみ)

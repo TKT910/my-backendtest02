@@ -1,148 +1,151 @@
-// /pages/api/generate.js
-export default async function handler(req, res) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-      console.error("API Key is missing in Vercel environment.");
-      return res.status(500).json({ error: "APIキーが設定されていません。" });
-  }
-  // POSTメソッドのみを許可
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+import { SYSTEM_PROMPT, inferTemplateType } from './promptTemplate.js';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
+// キャッシュディレクトリ
+const CACHE_DIR = path.join(process.cwd(), 'data', 'ai_cache');
+
+// キャッシュディレクトリを確保
+if (!fs.existsSync(CACHE_DIR)) {
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+}
+
+// テキストのハッシュを計算
+function getPromptHash(prompt) {
+  return crypto.createHash('sha256').update(prompt).digest('hex');
+}
+
+// キャッシュから読み込み
+function getCachedQuestions(prompt) {
+  const hash = getPromptHash(prompt);
+  const cacheFile = path.join(CACHE_DIR, `${hash}.json`);
+  
+  if (fs.existsSync(cacheFile)) {
+    try {
+      const cached = fs.readFileSync(cacheFile, 'utf8');
+      return JSON.parse(cached);
+    } catch (e) {
+      console.error('Cache read error:', e);
+      return null;
+    }
+  }
+  return null;
+}
+
+// キャッシュに書き込み
+function cacheQuestions(prompt, questions) {
+  const hash = getPromptHash(prompt);
+  const cacheFile = path.join(CACHE_DIR, `${hash}.json`);
+  
   try {
-    const { prompt } = req.body; // prompt はフロントエンドから送られた元のテキスト全体
+    fs.writeFileSync(cacheFile, JSON.stringify(questions, null, 2));
+  } catch (e) {
+    console.error('Cache write error:', e);
+  }
+}
 
-    if (!prompt) {
-      return res.status(400).json({ error: "Prompt is required" });
+export default async function handler(req, res) {
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      console.error('API Key is missing in environment.');
+      return res.status(500).json({ error: 'APIキーが設定されていません。' });
     }
 
-    // 既存のフロントエンドが期待するJSON形式を生成するためのシステムプロンプト
-    // /pages/api/generate.js の systemPrompt (修正後)
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
 
-const systemPrompt = `あなたは優秀な編集者であり、与えられたテキストを深く理解するための内省的な質問を生成する専門家です。
-以下の手順に従って、入力されたテキストに対して質問を生成し、**必ずJSON配列形式**で出力してください。
+    const { prompt } = req.body || {};
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
 
-1. 入力テキストを段落ごとに分け、**最低でも1つ**、曖昧な表現や補足を促す質問を作成してください。
-2. 出力は、**このリストを直接示すJSON配列のみ**とし、説明文、挨拶、Markdownのバッククォート**以外の文字は一切含めないでください**。
-3. **質問が1つしかない場合でも、必ず配列の形式（[ ]）でラップしてください。**
+    // キャッシュを確認
+    const cachedQuestions = getCachedQuestions(prompt);
+    if (cachedQuestions) {
+      console.log('🔄 キャッシュから返却:', getPromptHash(prompt));
+      return res.status(200).json(cachedQuestions);
+    }
 
-出力JSON形式:
-[
-  {
-    "text": "生成された質問文。",
-    "targetText": "質問が関連する元のテキストの段落全体。"
-  }
-  // ... 必要な数だけ続く
-]
-`;
+    const systemPrompt = SYSTEM_PROMPT;
 
-    // OpenAI API呼び出し
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        // JSON構造化出力を確実にするため gpt-4o を使用
-        model: "gpt-4o", 
+        model: 'gpt-4o',
         messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `ターゲットテキスト:\n${prompt}` }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `分析対象のテキスト:
+${prompt}` },
         ],
-        // JSON形式を要求
-        response_format: { type: "json" }, 
-        max_tokens: 4096,
+        max_tokens: 1200,
+        temperature: 0,
+        top_p: 0.95,
       }),
     });
 
-    // APIからの応答をJSONとして取得
     const data = await response.json();
-    
-    // ... (API自体がエラーを返した場合の処理は省略)
+    console.log('DEBUG: Full API response:', JSON.stringify(data, null, 2));
 
-    let jsonString = data.choices?.[0]?.message?.content;
-    
-    // --- ★ デバッグログの追加ポイント ★ ---
-    if (!jsonString) {
-        // 1. contentが空だった場合のデバッグログ
-        const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
-        console.error("DEBUG: Content is EMPTY. Finish reason:", finishReason);
-        
-        // ★ ログ追加のため、エラーメッセージも少し修正（Finish Reasonを出力）
-        if (finishReason === 'content_filter') {
-            return res.status(400).json({ error: "入力内容がOpenAIの安全ポリシーに抵触しました。" });
+    const raw = data?.choices?.[0]?.message?.content;
+    if (!raw) {
+      const finishReason = data?.choices?.[0]?.finish_reason || 'unknown';
+      console.error('DEBUG: Content is EMPTY. Finish reason:', finishReason);
+      return res.status(500).json({ error: `AIが応答を生成できませんでした（Finish Reason: ${finishReason}）。` });
+    }
+
+    let jsonString = raw.trim();
+    if (jsonString.startsWith('```json')) jsonString = jsonString.slice(7).trim();
+    else if (jsonString.startsWith('```')) jsonString = jsonString.slice(3).trim();
+    if (jsonString.endsWith('```')) jsonString = jsonString.slice(0, -3).trim();
+
+    // Try to find first JSON array/object in the text
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonString);
+    } catch (e) {
+      // fallback: try to extract JSON substring
+      const start = jsonString.indexOf('[');
+      const end = jsonString.lastIndexOf(']');
+      if (start !== -1 && end !== -1 && end > start) {
+        const candidate = jsonString.substring(start, end + 1);
+        try {
+          parsed = JSON.parse(candidate);
+        } catch (e2) {
+          console.error('JSON parse error (fallback):', e2);
+          return res.status(500).json({ error: 'Invalid JSON returned from AI.' });
         }
-        // max_tokensを4096から2048に戻す（テストを兼ねて）
-        if (finishReason === 'length') {
-            return res.status(500).json({ error: "AIの応答が長すぎるため途中で打ち切られました（max_tokens: 4096）。" });
-        }
-        return res.status(500).json({ error: "AIが応答を生成できませんでした（Finish Reason: " + finishReason + "）。" });
+      } else {
+        console.error('JSON parse error:', e);
+        return res.status(500).json({ error: 'Invalid JSON returned from AI.' });
+      }
     }
 
-    // 2. AIが返した生の文字列をターミナルに出力
-    console.log("DEBUG: Raw JSON String from AI:\n", jsonString);
-    // ★★★ ロバスト性を高めるための前処理：Markdownバッククォートを削除 ★★★
-    jsonString = jsonString.trim();
-    
-    // '```json' または '```' で始まる場合、それを削除
-    if (jsonString.startsWith('```json')) {
-      jsonString = jsonString.substring(7).trim();
-    } else if (jsonString.startsWith('```')) {
-       jsonString = jsonString.substring(3).trim();
-    }
-    
-    // 最後の '```' を削除
-    if (jsonString.endsWith('```')) {
-      jsonString = jsonString.substring(0, jsonString.length - 3).trim();
-    }
-    
-    let aiQuestionsArray;
-try {
-    const parsed = JSON.parse(jsonString);
-
-    let tempArray = null;
-
-    // 1. 返り値がそのまま配列
-    if (Array.isArray(parsed)) {
-        tempArray = parsed;
-    }
-    // 2. 配列を含んでいる形式（questions / list / items）
-    else if (
-        Array.isArray(parsed.questions) ||
-        Array.isArray(parsed.list) ||
-        Array.isArray(parsed.items)
-    ) {
-        tempArray =
-            parsed.questions ||
-            parsed.list ||
-            parsed.items;
-    }
-    // 3. それ以外 → 単一のオブジェクト
-    else {
-        tempArray = [parsed]; // ← ここが一番重要！！
-    }
-
-    aiQuestionsArray = tempArray;
-
-} catch (e) {
-     console.error("JSON parse error:", e);
-    return res.status(500).json({ error: "Invalid JSON returned from AI." });
-}
-
-    
-    // 最終的に有効な配列が取得できたか確認 (このチェックは空配列でも通るようにしておく)
+    const aiQuestionsArray = Array.isArray(parsed) ? parsed : [parsed];
     if (!Array.isArray(aiQuestionsArray)) {
-        console.error("AI did not return a valid array (Final check failed):", aiQuestionsArray);
-        return res.status(500).json({ error: "AIが期待される形式の質問リストを生成できませんでした。" });
+      return res.status(500).json({ error: 'AIが期待される形式の質問リストを生成できませんでした。' });
     }
 
-    // 成功時: 質問リストの配列をそのままフロントエンドに返す
-    res.status(200).json(aiQuestionsArray);
+    // 各質問にtemplate_typeを推論して追加（AIが返してなければ）
+    const enrichedQuestions = aiQuestionsArray.map(q => ({
+      ...q,
+      templateType: q.templateId || inferTemplateType(q.text || '')
+    }));
+
+    // キャッシュに保存
+    cacheQuestions(prompt, enrichedQuestions);
+    console.log('💾 キャッシュに保存しました:', getPromptHash(prompt));
+
+    return res.status(200).json(enrichedQuestions);
   } catch (err) {
-    // 予期せぬエラー（ネットワークエラーなど）
-    console.error("Internal Server Error:", err);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Internal Server Error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

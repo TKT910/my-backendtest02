@@ -1,0 +1,16 @@
+﻿分析,必須度,イベント,説明,実装状況
+Q1&Q3,⭕ 必須,🤖_ai_feedback_received,"テンプレートタイプ配列（A1-A9, B1-B5）を含む現在形式",✅ 有
+Q2,⭕ 必須,text_revised,ユーザーが回答を編集した事実,✅ 有
+Q2,⭕ 必須,回答保存イベント,【現在未実装】回答を初めて入力した時点の記録が必要,❌ 無
+Q4,⭕ 必須,text_revised,編集が発生した時刻と内容,✅ 有
+Q4,⭕ 必須,toggle_original_view,元文を見た時刻（showing_original=trueの時点）,✅ 有
+Q5,⭕ 必須,📋_session_history_opened or 💭_reflection_history_opened,ユーザーが過去セッション/反省を見た,✅ 有
+Q5,⭕ 必須,text_revised,その後、テキストを編集した,✅ 有
+（全体）,❌ 不要,"click_help_btn, click_help_from_login",ヘルプ閲覧は学習効果の分析対象外,✅ 有
+（全体）,❌ 不要,click_new_session_btn,新規セッション開始は純粋なUI操作,✅ 有
+（全体）,❌ 不要,click_cancel_text_input,キャンセル操作はエラー状態を示す,✅ 有
+（全体）,❌ 不要,submit_initial_text,テキスト初期送信は不要（🤖_ai_feedback_receivedで追跡可）,✅ 有
+（全体）,❌ 不要,mode_select_text（古い形式）,新形式📁_file_input_mode_selectedに統一予定,✅ 有
+（全体）,❌ 不要,ai_feedback_generated（古い形式）,新形式🤖_ai_feedback_receivedで置き換わった,✅ 有
+（全体）,❌ 不要,login_success,セッション内分析が主なため、ログイン時刻は補助的,✅ 有
+（全体）,❌ 不要,"page_loaded_with_user, 🌐_page_loaded",ページロード自体は学習行動ではない,✅ 有

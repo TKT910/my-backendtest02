@@ -1,0 +1,26 @@
+﻿0,1,2,3,4,5
+=== 📊 全体統計 ===,,,,,
+ログ件数,89,,,,
+ユーザー数,2,,,,
+,,,,,
+=== 👥 ユーザー別統計 ===,,,,,
+ユーザーID,行動数,ログイン,反省閲覧,履歴閲覧,復元
+AAA23179,83,5,12,21,15
+guest,6,0,0,1,0
+,,,,,
+=== 📈 イベント統計 ===,,,,,
+イベント,発生回数,割合,,,
+click_history_btn,22,24.7%,,,
+restore_history_session,15,16.9%,,,
+click_reflection_history_btn,12,13.5%,,,
+page_loaded_with_user,10,11.2%,,,
+text_revised,8,9.0%,,,
+ai_feedback_generated,6,6.7%,,,
+login_success,5,5.6%,,,
+mode_select_text,4,4.5%,,,
+click_new_session_btn,2,2.2%,,,
+click_help_btn,1,1.1%,,,
+toggle_original_view,1,1.1%,,,
+click_cancel_text_input,1,1.1%,,,
+submit_initial_text,1,1.1%,,,
+click_help_from_login,1,1.1%,,,

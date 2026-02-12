@@ -1,0 +1,9 @@
+{"timestamp":"2025-12-10T11:49:29.767Z","user_id":"AAA23179","step":"mode_select_text"}
+{"timestamp":"2025-12-10T11:49:47.663Z","user_id":"AAA23179","step":"click_help_btn"}
+{"timestamp":"2025-12-10T12:30:57.892Z","user_id":"AAA23179","step":"click_history_btn"}
+{"timestamp":"2025-12-10T12:52:31.665Z","user_id":"AAA23179","step":"click_history_btn"}
+{"timestamp":"2025-12-10T12:54:15.043Z","user_id":"AAA23179","step":"click_history_btn"}
+{"timestamp":"2025-12-10T12:58:11.019Z","user_id":"AAA23179","step":"page_loaded_with_user","user_from_url":"AAA23179"}
+{"timestamp":"2025-12-10T12:58:13.013Z","user_id":"AAA23179","step":"click_history_btn"}
+{"timestamp":"2025-12-10T12:58:16.539Z","user_id":"AAA23179","step":"restore_history_session","session_id":"1765231432683","preview":"今回の議論では、主に先週の進捗について報告、研究タイトルとプ"}
+{"timestamp":"2025-12-10T12:58:27.092Z","user_id":"AAA23179","step":"ai_feedback_generated","input_text_length":641,"generated_count":5,"questions_preview":["疑問に思ったこと：その『UIの改善』を『改善』と述べる際、どのような具体的な手段・プロセス・工程を想定していますか？","疑問に思ったこと：『機能を追加すればするほどいいというものではない』と考える根拠・背景・資料は何ですか？","疑問に思ったこと：その『プロンプトに関して』を『わかりやすい文章にする』とする際、具体的な基準（数値・頻度・対象範囲など）はどのように設定していますか？","疑問に思ったこと：『自己記述を活用した思考深化システム』とは、どのような定義・構成要素を想定していますか？","疑問に思ったこと：『どんな力を伸ばすことができるのかが不透明である』とされる場合、どれほどの変化量や結果を想定していますか？"]}

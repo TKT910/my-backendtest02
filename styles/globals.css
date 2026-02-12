@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  /* 質問カード全体 */
+  .question {
+    @apply flex gap-3 p-4 mb-3 bg-white border border-gray-200 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-300;
+  }
+  
+  /* 旧ハイライト（互換性のため残存） */
+  .originalHighlight {
+    @apply bg-yellow-200 text-gray-900 rounded px-0.5 transition-colors duration-300;
+  }
+
+  /* ★追加: 具体化ハイライト（青系） */
+  .highlight-concrete {
+    @apply bg-blue-100 text-blue-800 border-b-2 border-blue-400 font-bold px-1 rounded-sm cursor-help transition-colors duration-300;
+  }
+
+  /* ★追加: 抽象化ハイライト（紫系） */
+  .highlight-abstract {
+    @apply bg-purple-100 text-purple-800 border-b-2 border-purple-400 font-bold px-1 rounded-sm cursor-help transition-colors duration-300;
+  }
+  
+  /* 修正箇所（波線） */
+  .diff-added {
+    @apply text-red-600 decoration-red-500 decoration-wavy underline decoration-2 bg-red-50;
+    text-underline-offset: 4px;
+  }
+
+  /* 吹き出しのシッポ（左側：AI用） */
+  .bubble-tail {
+    @apply absolute top-0 -left-2 w-4 h-4 bg-white border-l border-t border-gray-200 transform -rotate-45 z-10;
+  }
+
+  /* 吹き出しのシッポ（右側：ユーザー回答用） */
+  .bubble-tail-right {
+    @apply absolute top-0 -right-2 w-4 h-4 bg-blue-600 transform rotate-45 z-0;
+  }
+
+  /* スクロールバー調整 */
+  .scrollBox::-webkit-scrollbar { width: 6px; }
+  .scrollBox::-webkit-scrollbar-track { background: transparent; }
+  .scrollBox::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
+
+  /* Toasterカスタムスタイル */
+  .sonner-toast {
+    @apply rounded-xl border border-gray-200 shadow-lg bg-white text-gray-800 font-medium text-sm;
+    padding: 12px 16px !important;
+  }
+
+  .sonner-toast[data-type="success"] { @apply border-green-200 bg-white; }
+  .sonner-toast[data-type="success"] svg { @apply text-green-600; }
+  .sonner-toast[data-type="error"] { @apply border-red-200 bg-white; }
+  .sonner-toast[data-type="error"] svg { @apply text-red-600; }
+  .sonner-toast[data-type="warning"] { @apply border-yellow-200 bg-white; }
+  .sonner-toast[data-type="warning"] svg { @apply text-yellow-600; }
+  .sonner-toast[data-type="info"] { @apply border-blue-200 bg-white; }
+  .sonner-toast[data-type="info"] svg { @apply text-blue-600; }
+}
+
+body {
+  @apply bg-gray-50 text-gray-800 font-sans;
+}
+
+.hidden { display: none !important; }
+
+/* Toasterカスタムカラー設定 */
+:root {
+  --sonner-background: #ffffff;
+  --sonner-border: #e5e7eb;
+  --sonner-text: #1f2937;
+}

@@ -1,0 +1,8 @@
+{"timestamp":"2025-12-11T13:41:35.947Z","user_id":"AAA23179","step":"toggle_original_view","showing_original":true}
+{"timestamp":"2025-12-11T13:41:38.129Z","user_id":"AAA23179","step":"click_new_session_btn"}
+{"timestamp":"2025-12-11T13:41:40.314Z","user_id":"AAA23179","step":"mode_select_text"}
+{"timestamp":"2025-12-11T14:50:32.057Z","user_id":"AAA23179","step":"click_cancel_text_input"}
+{"timestamp":"2025-12-11T14:50:33.633Z","user_id":"AAA23179","step":"click_history_btn"}
+{"timestamp":"2025-12-11T14:50:39.536Z","user_id":"AAA23179","step":"restore_history_session","session_id":"1764597178893","preview":"今日、初めてプログラミングの講義でPythonを学んだ。変数"}
+{"timestamp":"2025-12-11T14:50:44.967Z","user_id":"AAA23179","step":"submit_initial_text","length":258}
+{"timestamp":"2025-12-11T14:50:52.887Z","user_id":"AAA23179","step":"ai_feedback_generated","input_text_length":258,"generated_count":3,"questions_preview":["疑問に思ったこと：『少しずつエラーを読み取り、修正する力がついた』と言うとき、具体的にどのようなエラーをどのように修正できるようになったのですか？","疑問に思ったこと：『初心者でも挑戦しやすい言語』と述べる際、Pythonのどのような特徴がそのように感じさせるのですか？","疑問に思ったこと：『より複雑な処理にも取り組んでみたい』と言うとき、具体的にどんな行動や到達目標を考えていますか？"]}
