@@ -188,6 +188,8 @@ function initApp() {
 
     // --- 履歴保存・復元ロジック ---
     function saveCurrentSession() {
+        const previewText = (originalContainer.value || "").replace(/\n/g, " ").substring(0, 50);
+        
         const currentData = {
             id: currentSessionId,
             userName: currentUserName,
@@ -197,24 +199,22 @@ function initApp() {
             editedText: editedText ? editedText.value : '',
             questions: questions,
             answers: answers,
-            preview: (originalContainer.value || "").replace(/\n/g, "").substring(0, 30)
+            preview: previewText // プレビュー用の文字を追加
         };
 
         if (!currentData.sourceText && !currentData.currentText) return;
 
+        // ★ localStorage だけでなく Supabase にも保存する（sendResearchLog を使う）
+        sendResearchLog('💾_auto_save_session', currentData);
+        
+        // localStorage も一応残しておく（バックアップ用）
         let history = JSON.parse(localStorage.getItem('reflection_history') || '[]');
         const existingIndex = history.findIndex(h => h.id === currentSessionId);
-        
-        if (existingIndex !== -1) {
-            history[existingIndex] = currentData;
-        } else {
-            history.unshift(currentData);
-        }
-        
-        if (history.length > 20) history = history.slice(0, 20);
-        localStorage.setItem('reflection_history', JSON.stringify(history));
+        if (existingIndex !== -1) history[existingIndex] = currentData;
+        else history.unshift(currentData);
+        localStorage.setItem('reflection_history', JSON.stringify(history.slice(0, 20)));
     }
-
+    
     function loadSession(data) {
         showConfirmDialog(
             '📂 セッション復元',
@@ -261,49 +261,69 @@ function initApp() {
         );
     }
 
-    function renderHistoryList() {
-        const history = JSON.parse(localStorage.getItem('reflection_history') || '[]');
-        historyListContent.innerHTML = '';
+    async function renderHistoryList() {
+        if (!historyListContent) return;
+        
+        // 読み込み中の表示
+        historyListContent.innerHTML = '<div class="text-center py-8 text-sm text-gray-500">クラウドから履歴を取得中...</div>';
         
         const myName = currentUserName || new URLSearchParams(window.location.search).get('user') || 'guest';
-        const myHistory = history.filter(h => !h.userName || h.userName === myName);
 
-        if (myHistory.length === 0) {
-            historyListContent.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">このIDの履歴はありません。<br>振り返りを行うと自動で保存されます。</div>';
-            return;
-        }
+        try {
+            // ★ 作成した get-history API を叩いて Supabase からデータを取得
+            const response = await fetch(`/api/get-history?userId=${myName}`);
+            if (!response.ok) throw new Error('履歴の取得に失敗しました');
+            
+            const logs = await response.json();
 
-        myHistory.forEach((item) => {
-            const dateObj = new Date(item.timestamp);
-            const dateStr = dateObj.toLocaleDateString('ja-JP');
-            const timeStr = dateObj.toLocaleTimeString('ja-JP', {hour: '2-digit', minute:'2-digit'});
-            const count = Object.keys(item.answers || {}).length;
+            if (!logs || logs.length === 0) {
+                historyListContent.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">履歴はありません。<br>振り返りを行うと自動でクラウドに保存されます。</div>';
+                return;
+            }
+
+            historyListContent.innerHTML = '';
             
-            const el = document.createElement('div');
-            el.className = 'bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:border-blue-400 hover:shadow-md cursor-pointer transition-all group';
-            
-            el.innerHTML = `
-                <div class="flex justify-between items-center mb-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">📅 ${dateStr} ${timeStr}</span>
+            logs.forEach((log) => {
+                // Supabaseに保存されているデータ(log_data)を取り出す
+                const item = log.log_data; 
+                const dateObj = new Date(log.created_at);
+                const dateStr = dateObj.toLocaleDateString('ja-JP');
+                const timeStr = dateObj.toLocaleTimeString('ja-JP', {hour: '2-digit', minute:'2-digit'});
+                
+                // 回答数などの計算（データがあれば）
+                const count = item.answers ? Object.keys(item.answers).length : 0;
+                
+                const el = document.createElement('div');
+                el.className = 'bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:border-blue-400 hover:shadow-md cursor-pointer transition-all group mb-3';
+                
+                el.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">📅 ${dateStr} ${timeStr}</span>
+                        </div>
+                        ${count > 0 ? `<span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">回答: ${count}件</span>` : ''}
                     </div>
-                    ${count > 0 ? `<span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">回答: ${count}件</span>` : ''}
-                </div>
-                <div class="text-sm text-gray-800 font-medium line-clamp-2 mb-3">
-                    ${escapeHtml(item.preview) || "(未入力)"}...
-                </div>
-                <div class="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                    クリックして操作を選択
-                </div>
-            `;
-            const realIndex = history.findIndex(h => h.id === item.id);
-            el.addEventListener('click', () => {
-                showHistoryActionModal(item, realIndex, history);
-            });
-            historyListContent.appendChild(el);
-        });
-    }
+                    <div class="text-sm text-gray-800 font-medium line-clamp-2 mb-3">
+                        ${escapeHtml(item.preview) || "(テキストなし)"}...
+                    </div>
+                    <div class="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity font-bold">
+                        クリックして復元
+                    </div>
+                `;
 
+                // クリック時に復元を実行
+                el.addEventListener('click', () => {
+                    // クラウド版では index や history配列の管理が不要なため一部簡略化
+                    showHistoryActionModal(item, null, logs);
+                });
+                historyListContent.appendChild(el);
+            });
+        } catch (e) {
+            console.error("Fetch history error:", e);
+            historyListContent.innerHTML = '<div class="text-red-500 text-center py-8 text-sm">エラー: 履歴を読み込めませんでした</div>';
+        }
+    }
+    
     function showHistoryActionModal(item, index, history) {
         currentHistoryAction = { item, index, history };
         if(historyActionPreview) {
